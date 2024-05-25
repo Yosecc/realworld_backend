@@ -134,7 +134,7 @@ class ProgramResource extends Resource
                             }),
                         ])->alignment(Alignment::Center),
                     ]),
-                ])->columnSpanFull(),
+                ])->from('md')->columnSpanFull(),
                 Section::make([
                     RepeatableEntry::make('details')->label('')
                         ->schema([
