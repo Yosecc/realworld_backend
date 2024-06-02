@@ -59,82 +59,91 @@ class ProgramResource extends Resource
     {
         return $infolist
             ->schema([
-                Split::make([
-                    Section::make([
+                Section::make()
+                    ->columns([
+                        'sm' => 1,
+                        'xl' => 3,
+                        
+                    ])
+                    ->schema([
                         ViewEntry::make('video')->view('filament.infolists.entries.video')->state(function (Program $record) {
                             return Storage::disk('remoto')->url($record->video);
-                        })
-                    ])->grow(false),
-                    Section::make([
-                        ImageEntry::make('image')
-                        ->state(function (Program $record) {
-                            return Storage::disk('remoto')->url($record->image);
-                        })
-                        ->label('')
-                        ->width('100%'),
-                        // Infolists\Components\TextEntry::make('name')->weight(FontWeight::Bold)->label(''),
-                        Infolists\Components\TextEntry::make('description')->label('')
-                            ->markdown()
-                            ->prose(),
-                        Infolists\Components\TextEntry::make('program_category.description')->label(''),
-                        Actions::make([
-                            Action::make('start')
-                            ->label('Start')
-                            ->icon('heroicon-m-play')
-                            ->color('success')
-                            ->action(function (Program $record): void {
-
-                                // dd($record);
-                                $response = self::registerProgram([
-                                    'subscription' => Auth::user()->subscription,
-                                    'program' => $record,
-                                    'status_id' => 1,
-                                    'is_active' => 1
-                                ]);
-                                if(!$response['status']){
-                                    Notification::make()
-                                        ->title($response['message'])
-                                        ->danger()
-                                        ->send();
-                                    return;
-                                }
-                               Notification::make()
-                                    ->title($response['message'])
-                                    ->success()
-                                    ->send();
+                        })->columnSpan([
+                            'sm' => 1,
+                            'xl' => 2,
+                        ]),
+                        Section::make([
+                            ImageEntry::make('image')
+                            ->state(function (Program $record) {
+                                return Storage::disk('remoto')->url($record->image);
                             })
-                            ->visible(function (Program $record){
-                                return !self::statusProgram(['program' => $record]);
-                            }),
-
-                            Action::make('stop')
-                            ->label('Stop')
-                            ->icon('heroicon-m-stop')
-                            ->color('danger')
-                            ->action(function (Program $record): void {
-                                $response = self::cancelProgram([
-                                    'subscription' => Auth::user()->subscription,
-                                    'program' => $record,
-                                    'status_id' => 1,
-                                    'is_active' => 1
-                                ]);
-                                if(!$response['status']){
+                            ->label('')
+                            ->width('100%'),
+                            // Infolists\Components\TextEntry::make('name')->weight(FontWeight::Bold)->label(''),
+                            Infolists\Components\TextEntry::make('description')->label('')
+                                ->markdown()
+                                ->prose(),
+                            Infolists\Components\TextEntry::make('program_category.description')->label(''),
+                            Actions::make([
+                                Action::make('start')
+                                ->label('Start')
+                                ->icon('heroicon-m-play')
+                                ->color('success')
+                                ->action(function (Program $record): void {
+                                    $response = self::registerProgram([
+                                        'subscription' => Auth::user()->subscription,
+                                        'program' => $record,
+                                        'status_id' => 1,
+                                        'is_active' => 1
+                                    ]);
+                                    if(!$response['status']){
+                                        Notification::make()
+                                            ->title($response['message'])
+                                            ->danger()
+                                            ->send();
+                                        return;
+                                    }
                                     Notification::make()
                                         ->title($response['message'])
-                                        ->danger()
+                                        ->success()
                                         ->send();
-                                    return;
-                                }
-                                Notification::make()
-                                    ->title($response['message'])
-                                    ->success()
-                                    ->send();
-                            })->visible(function (Program $record){
-                                return self::statusProgram(['program' => $record]);
-                            }),
-                        ])->alignment(Alignment::Center),
+                                })
+                                ->visible(function (Program $record){
+                                    return !self::statusProgram(['program' => $record]);
+                                }),
+    
+                                Action::make('stop')
+                                ->label('Stop')
+                                ->icon('heroicon-m-stop')
+                                ->color('danger')
+                                ->action(function (Program $record): void {
+                                    $response = self::cancelProgram([
+                                        'subscription' => Auth::user()->subscription,
+                                        'program' => $record,
+                                        'status_id' => 1,
+                                        'is_active' => 1
+                                    ]);
+                                    if(!$response['status']){
+                                        Notification::make()
+                                            ->title($response['message'])
+                                            ->danger()
+                                            ->send();
+                                        return;
+                                    }
+                                    Notification::make()
+                                        ->title($response['message'])
+                                        ->success()
+                                        ->send();
+                                })->visible(function (Program $record){
+                                    
+                                    return self::statusProgram(['program' => $record]) && !$record->is_free;
+                                }),
+                            ])->alignment(Alignment::Center),
+                        ])->columnStart([
+                            'sm' => 1,
+                            'xl' => 3,
+                        ]),
                     ]),
-                ])->from('md')->columnSpanFull(),
                 Section::make([
                     RepeatableEntry::make('details')->label('')
                         ->schema([
@@ -147,6 +156,9 @@ class ProgramResource extends Resource
                                 ->icon('heroicon-m-eye')
                                 ->fillForm(function (ProgramDay $record){
                                     $data['exercises'] = $record->exercise->map(function(ProgramDayRoutine $excercise){
+                                        if(!$excercise->programSuscription){
+                                            return $excercise;
+                                        }
                                         $excercise['ps'] = $excercise->programSuscription->id;
                                         $excercise['logs'] = $excercise->programSuscription->logs->where('program_day_routines_id',$excercise->id)->map(function($detail){
                                             $detail_id = $detail->id;
@@ -166,8 +178,12 @@ class ProgramResource extends Resource
                                         Grid::make(2)
                                         ->schema([
                                             ViewField::make('video')->view('filament.forms.components.video')->columnSpan('full'),
-                                            TextInput::make('sets')->readOnly(),
-                                            TextInput::make('repetitions')->readOnly(),
+                                            TextInput::make('sets')->visible(function(Get $get){
+                                                    return $get('ps') ? true:false;
+                                                })->readOnly(),
+                                            TextInput::make('repetitions')->visible(function(Get $get){
+                                                    return $get('ps') ? true:false;
+                                                })->readOnly(),
                                             Hidden::make('id'),
                                             Hidden::make('program_day_id'),
                                             Hidden::make('ps'),
@@ -205,7 +221,9 @@ class ProgramResource extends Resource
                                                                     ->send();
                                                             }),
                                                         ])->alignment(Alignment::Right)->columnSpan('full'),
-                                                ])->collapsed()->columns(1)->columnSpan('full'),
+                                                ])->visible(function(Get $get){
+                                                    return $get('ps') ? true:false;
+                                                })->collapsed()->columns(1)->columnSpan('full'),
                                             
                                         ])
                                     ])
@@ -223,7 +241,6 @@ class ProgramResource extends Resource
                             ])->alignment(Alignment::Right),
                         ])
                         ->columns(4)
-
                 ])->visible(function (Program $record){
                     return self::statusProgram(['program' => $record]);
                 })->columnSpanFull(),
@@ -315,7 +332,7 @@ class ProgramResource extends Resource
             ];
         }
 
-        return ($status_package['status'] && $status_program['status']) ? true:false;
+        return (($status_package && $status_package['status'] )&& ($status_program && $status_program['status'])) ? true:false;
     }
 
     public static function registerProgram($request)

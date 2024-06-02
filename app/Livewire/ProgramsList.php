@@ -31,7 +31,7 @@ class ProgramsList extends Component implements HasForms, HasTable
     public function table(Table $table): Table
     {
         return $table
-            ->query(Program::query())
+            ->query(Program::query()->where('status_id',1))
             ->columns([
                 Stack::make([
                     ImageColumn::make('image')
@@ -56,7 +56,7 @@ class ProgramsList extends Component implements HasForms, HasTable
             ->actions([
                 Action::make('view')
                 ->url(fn (Program $record): string => 'programs/'.$record->id )
-                ->openUrlInNewTab()
+                // ->openUrlInNewTab()
             ])
             ->bulkActions([
                 // ...

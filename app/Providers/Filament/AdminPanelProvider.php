@@ -46,11 +46,12 @@ class AdminPanelProvider extends PanelProvider
                 // Widgets\FilamentInfoWidget::class,
             ])
             ->plugins([
-                FilamentEditProfilePlugin::make()
-                    ->setTitle('My Profile')
-                    ->setNavigationLabel('My Profile')
-                    ->setNavigationGroup('Profile')
-                    ->setIcon('heroicon-o-user')
+                // FilamentEditProfilePlugin::make()
+                //     ->setTitle('My Profile')
+                //     ->setNavigationLabel('My Profile')
+                //     ->setNavigationGroup('Profile')
+                //     ->shouldShowDeleteAccountForm(false)
+                //     ->setIcon('heroicon-o-user')
             ])
             ->middleware([
                 EncryptCookies::class,

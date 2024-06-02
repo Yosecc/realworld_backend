@@ -58,7 +58,7 @@ class MyProgramsList extends Component implements HasForms, HasTable
             ->actions([
                 Action::make('view')
                 ->url(fn (SubscriptionProgram $record): string => 'programs/'.$record->program->id )
-                ->openUrlInNewTab()
+                // ->openUrlInNewTab()
             ])
             ->bulkActions([
                 // ...
